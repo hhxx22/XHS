@@ -41,7 +41,6 @@
 2. 克隆仓库或下载源代码：
 ```bash
 git clone [仓库地址]
-cd excel-processing-system
 ```
 
 3. 安装依赖：
