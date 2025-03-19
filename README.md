@@ -40,7 +40,7 @@
 
 2. 克隆仓库或下载源代码：
 ```bash
-git clone [仓库地址]
+git clone https://github.com/hhxx22/XHS.git
 ```
 
 3. 安装依赖：
