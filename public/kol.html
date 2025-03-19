@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel文件处理系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .update-cookies-btn {
+            background-color: #2196F3;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .update-cookies-btn:hover {
+            background-color: #1976D2;
+        }
+        .update-cookies-btn i {
+            font-size: 16px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background-color: #E8F5E9;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status.warning {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+        .file-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .loading {
+            display: none;
+            margin: 10px 0;
+        }
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #4CAF50;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .chunks-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chunk-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .chunk-item {
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        .chunk-item.waiting {
+            border-color: #9e9e9e;
+            background-color: #f5f5f5;
+        }
+        .chunk-item.processing {
+            border-color: #2196F3;
+            background-color: #E3F2FD;
+        }
+        .chunk-item.completed {
+            border-color: #4CAF50;
+            background-color: #E8F5E9;
+        }
+        .chunk-item.error {
+            border-color: #f44336;
+            background-color: #ffebee;
+        }
+        .chunk-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .chunk-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .file-info {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+        }
+        .response-data {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .toggle-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .toggle-btn:hover {
+            background-color: #1976D2;
+        }
+        .response-data pre {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 5px 0;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .chunk-item .error-details {
+            margin-top: 8px;
+            padding: 8px;
+            background-color: #fff5f5;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .chunk-item .error-details div {
+            margin: 4px 0;
+            color: #e53e3e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Excel文件处理系统（获取基本信息）</h1>
+            <button class="update-cookies-btn">
+                <i class="fas fa-sync"></i>
+                更新Cookies
+            </button>
+        </div>
+        <div class="upload-area" id="dropZone">
+            <div style="margin-top: 15px; text-align: left;">
+                <label for="additionalLinkInput" style="display: block; margin-bottom: 5px; font-weight: bold;">kol链接 (选填):</label>
+                <input type="url" id="additionalLinkInput" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
+            <p>将Excel文件拖放到此处，或</p>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+            <button onclick="document.getElementById('fileInput').click()">选择文件</button>
+            
+            <div class="file-info" id="fileInfo"></div>
+            <div class="loading" id="loading"></div>
+        </div>
+        <div id="status" class="status" style="display: none;"></div>
+        <div id="chunksContainer" class="chunks-container" style="display: none;">
+            <div id="currentFileInfo" class="file-info"></div>
+            <h3>数据块处理状态</h3>
+            <div id="chunkList" class="chunk-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // 添加后端服务器配置
+        const SERVER_CONFIG = {
+            host: 'localhost',
+            port: 3000,
+            get baseUrl() {
+                return `http://${this.host}:${this.port}`;
+            },
+            get wsUrl() {
+                return `ws://${this.host}:${this.port}`;
+            }
+        };
+
+        let ws = null;
+        let connectionId = null;
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const statusDiv = document.getElementById('status');
+        const fileInfo = document.getElementById('fileInfo');
+        const loading = document.getElementById('loading');
+
+        // WebSocket连接
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.hostname}:3000/status`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                console.log('WebSocket连接已建立');
+                updateStatus('已连接到服务器');
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log('收到消息:', data);
+                
+                if (data.type === 'connection') {
+                    connectionId = data.connectionId;
+                    localStorage.setItem('wsConnectionId', connectionId);
+                    console.log('获取到连接ID:', connectionId);
+                    updateStatus('WebSocket连接成功');
+                } else if (data.type === 'start') {
+                    // 初始化新任务时会自动清空之前的任务
+                    TaskManager.initTask(data.uploadId, data.fileName, data.totalChunks);
+                    updateStatus(`开始处理文件：${data.fileName}`);
+                } else if (data.type === 'progress') {
+                    // 更新特定块的状态
+                    TaskManager.updateChunk(
+                        data.uploadId,
+                        data.chunkIndex,
+                        data.status,
+                        data.message,
+                        data.processResult
+                    );
+                    // 更新总体进度
+                    updateProgress(data);
+                } else if (data.type === 'complete') {
+                    // 完成所有块
+                    TaskManager.completeTask(data.uploadId);
+                    updateStatus('文件处理完成', 'success');
+                    // 重置上传区域，使其可以再次使用
+                    resetUploadArea();
+                } else if (data.type === 'partial_complete') {
+                    // 处理部分完成的情况
+                    data.failedChunks.forEach(chunk => {
+                        TaskManager.updateChunk(
+                            data.uploadId,
+                            chunk.chunkIndex + 1,
+                            'error',
+                            chunk.error,
+                            {
+                                success: false,
+                                message: chunk.error,
+                                errorItems: chunk.processResult?.errorItems || [{ 
+                                    index: 0, 
+                                    error: chunk.error 
+                                }]
+                            }
+                        );
+                    });
+                    updateStatus(data.message, 'warning');
+                    // 重置上传区域，使其可以再次使用
+                    resetUploadArea();
+                } else if (data.type === 'error') {
+                    // 标记错误状态
+                    TaskManager.errorTask(data.uploadId, data.message);
+                    updateStatus('处理过程中发生错误: ' + data.message, 'error');
+                    // 重置上传区域，使其可以再次使用
+                    resetUploadArea();
+                } else if (data.type === 'cookiesUpdate') {
+                    const updateBtn = document.querySelector('.update-cookies-btn');
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = '<i class="fas fa-sync"></i> 更新Cookies';
+                    
+                    if (data.success) {
+                        updateStatus(data.message, 'success');
+                    } else {
+                        updateStatus(data.message, 'error');
+                    }
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket连接已关闭');
+                updateStatus('连接已断开，正在重新连接...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket错误:', error);
+                updateStatus('连接错误');
+            };
+        }
+
+        // 页面加载时连接WebSocket
+        window.addEventListener('load', () => {
+            connectWebSocket();
+        });
+
+        // 页面关闭时清理WebSocket连接
+        window.addEventListener('beforeunload', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close(1000, '页面关闭');
+            }
+        });
+
+        // 更新状态显示
+        function updateStatus(message, type = '') {
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+        }
+
+        function resetUploadArea() {
+            loading.style.display = 'none';
+            fileInfo.textContent = '';
+            fileInput.value = '';
+            dropZone.classList.remove('dragover');
+            // 启用文件输入和拖放功能
+            fileInput.disabled = false;
+            dropZone.style.pointerEvents = 'auto';
+            dropZone.style.opacity = '1';
+            
+            // 重新绑定事件监听器
+            console.log("重新绑定事件监听器");
+            
+            // 先移除之前的事件监听器，避免重复绑定
+            fileInput.removeEventListener('change', fileInputChangeHandler);
+            dropZone.removeEventListener('drop', dropZoneDropHandler);
+            dropZone.removeEventListener('dragover', dragOverHandler);
+            dropZone.removeEventListener('dragleave', dragLeaveHandler);
+            
+            // 重新添加事件监听器
+            fileInput.addEventListener('change', fileInputChangeHandler);
+            dropZone.addEventListener('drop', dropZoneDropHandler);
+            dropZone.addEventListener('dragover', dragOverHandler);
+            dropZone.addEventListener('dragleave', dragLeaveHandler);
+        }
+
+        // 禁用上传区域
+        function disableUploadArea() {
+            fileInput.disabled = true;
+            dropZone.style.pointerEvents = 'none';
+            dropZone.style.opacity = '0.6';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 文件上传处理
+        async function handleFileUpload(file) {
+            if (!file) {
+                updateStatus('请选择文件', 'error');
+                return;
+            }
+
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                updateStatus('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                updateStatus('文件大小不能超过10MB', 'error');
+                return;
+            }
+
+            // 立即清空所有之前的状态
+            TaskManager.clearAllTasks();
+            resetAllState();
+
+            // 开始新的上传流程
+            disableUploadArea();
+            fileInfo.textContent = `文件名: ${file.name} (${formatFileSize(file.size)})`;
+            loading.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // 获取额外链接并添加到表单数据
+            const additionalLink = document.getElementById('additionalLinkInput').value;
+            if (additionalLink) {
+                formData.append('additionalLink', additionalLink);
+            }
+
+            try {
+                updateStatus('正在上传文件，请稍候...', 'warning');
+                const response = await fetch(`${SERVER_CONFIG.baseUrl}/upload`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Connection-ID': connectionId
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '上传失败');
+                }
+
+                updateStatus(result.message, 'success');
+            } catch (error) {
+                console.error('上传错误:', error);
+                updateStatus(error.message || '文件上传失败，请重试', 'error');
+                // 确保完全重置上传区域状态
+                resetUploadArea();
+                
+                // 延迟短暂时间后确保事件监听器被正确重新绑定
+                setTimeout(() => {
+                    console.log('延迟后确认事件监听器重新绑定');
+                    resetUploadArea();
+                }, 500);
+            }
+        }
+
+        // 更新进度显示
+        function updateProgress(data) {
+            loading.style.display = 'none';
+            if (typeof data.current === 'number' && typeof data.total === 'number') {
+                const percent = (data.current / data.total * 100).toFixed(1);
+                updateStatus(`${data.message} (${percent}%)`, data.status || 'warning');
+            }
+        }
+
+        // 文件拖放处理
+        function dragOverHandler(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        }
+
+        function dragLeaveHandler() {
+            dropZone.classList.remove('dragover');
+        }
+
+        function dropZoneDropHandler(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            handleFileUpload(file);
+        }
+
+        // 文件选择处理
+        function fileInputChangeHandler(e) {
+            const file = e.target.files[0];
+            handleFileUpload(file);
+        }
+
+        // 初始绑定事件
+        dropZone.addEventListener('dragover', dragOverHandler);
+        dropZone.addEventListener('dragleave', dragLeaveHandler);
+        dropZone.addEventListener('drop', dropZoneDropHandler);
+        fileInput.addEventListener('change', fileInputChangeHandler);
+
+        // 任务状态管理
+        const TaskManager = {
+            tasks: new Map(),
+
+            // 初始化任务
+            initTask(uploadId, fileName, totalChunks) {
+                // 清空之前的所有任务
+                this.clearAllTasks();
+                
+                const taskInfo = {
+                    fileName,
+                    totalChunks,
+                    chunks: new Array(totalChunks).fill(null).map((_, index) => ({
+                        index: index + 1,
+                        status: 'waiting',
+                        message: '等待处理'
+                    }))
+                };
+                this.tasks.set(uploadId, taskInfo);
+                this.saveToLocalStorage();
+                this.renderTasks();
+            },
+
+            // 更新块状态
+            updateChunk(uploadId, chunkIndex, status, message, processResult) {
+                const task = this.tasks.get(uploadId);
+                if (task && task.chunks[chunkIndex - 1]) {
+                    const chunk = task.chunks[chunkIndex - 1];
+                    chunk.status = status;
+                    chunk.message = message;
+                    chunk.processResult = processResult;
+                    this.saveToLocalStorage();
+                    this.renderTasks();
+                }
+            },
+
+            // 检查是否所有块都处理完成且成功
+            isAllChunksSuccessful(task) {
+                return task.chunks.every(chunk => chunk.status === 'completed');
+            },
+
+            // 修改完成任务的方法
+            completeTask(uploadId) {
+                const task = this.tasks.get(uploadId);
+                if (task) {
+                    task.chunks.forEach(chunk => {
+                        if (chunk.status !== 'error') {  // 不修改错误状态的块
+                            chunk.status = 'completed';
+                            chunk.message = '处理完成';
+                        }
+                    });
+                    this.saveToLocalStorage();
+                    this.renderTasks();
+                    
+                    // 启用上传区域
+                    fileInput.disabled = false;
+                    dropZone.style.pointerEvents = 'auto';
+                    dropZone.style.opacity = '1';
+                }
+            },
+
+            // 修改错误处理的方法
+            errorTask(uploadId, errorMessage) {
+                const task = this.tasks.get(uploadId);
+                if (task) {
+                    task.chunks.forEach(chunk => {
+                        if (chunk.status !== 'completed') {
+                            chunk.status = 'error';
+                            chunk.message = errorMessage;
+                        }
+                    });
+                    this.saveToLocalStorage();
+                    this.renderTasks();
+                    
+                    // 启用上传区域
+                    fileInput.disabled = false;
+                    dropZone.style.pointerEvents = 'auto';
+                    dropZone.style.opacity = '1';
+                }
+            },
+
+            // 删除任务
+            removeTask(uploadId) {
+                this.tasks.delete(uploadId);
+                this.saveToLocalStorage();
+                this.renderTasks();
+            },
+
+            // 保存到localStorage
+            saveToLocalStorage() {
+                const tasksData = Array.from(this.tasks.entries());
+                localStorage.setItem('taskData', JSON.stringify(tasksData));
+            },
+
+            // 从localStorage恢复
+            loadFromLocalStorage() {
+                const tasksData = localStorage.getItem('taskData');
+                if (tasksData) {
+                    this.tasks = new Map(JSON.parse(tasksData));
+                    this.renderTasks();
+                }
+            },
+
+            // 渲染任务状态
+            renderTasks() {
+                const container = document.getElementById('chunksContainer');
+                const fileInfo = document.getElementById('currentFileInfo');
+                const chunkList = document.getElementById('chunkList');
+
+                if (this.tasks.size === 0) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                container.style.display = 'block';
+                chunkList.innerHTML = '';
+
+                for (const [uploadId, task] of this.tasks) {
+                    fileInfo.textContent = `当前文件：${task.fileName}（共${task.totalChunks}个数据块）`;
+                    
+                    task.chunks.forEach(chunk => {
+                        const chunkElement = document.createElement('div');
+                        chunkElement.className = `chunk-item ${chunk.status}`;
+                        
+                        let statusContent = '';
+                        
+                        if (chunk.status === 'completed') {
+                            // 处理成功
+                            const message = chunk.processResult?.message || '处理完成';
+                            statusContent = `
+                                <div class="chunk-status">
+                                    <div>${message}</div>
+                                    ${chunk.processResult?.successCount ? 
+                                        `<div class="success-details">成功处理: ${chunk.processResult.successCount}条数据</div>` 
+                                        : ''}
+                                </div>
+                            `;
+                        } else if (chunk.status === 'error') {
+                            // 处理失败
+                            const errorMessage = chunk.processResult?.message || chunk.message || '处理失败';
+                            const errorItems = chunk.processResult?.errorItems || [];
+                            
+                            statusContent = `
+                                <div class="chunk-status error">
+                                    <div class="error-message">${errorMessage}</div>
+                                    ${errorItems.length > 0 ? `
+                                        <div class="error-details">
+                                            ${errorItems.map(error => `
+                                                <div class="error-item">第${error.index + 1}条: ${error.error}</div>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
+                                    ${chunk.processResult?.successCount ? 
+                                        `<div class="success-details">成功处理: ${chunk.processResult.successCount}条数据</div>` 
+                                        : ''}
+                                    ${chunk.processResult?.failureCount ? 
+                                        `<div class="error-details">失败数量: ${chunk.processResult.failureCount}条数据</div>` 
+                                        : ''}
+                                </div>
+                            `;
+                        } else {
+                            // 等待或处理中
+                            statusContent = `
+                                <div class="chunk-status">
+                                    <div>${chunk.status === 'processing' ? '正在处理...' : '等待处理'}</div>
+                                </div>
+                            `;
+                        }
+
+                        chunkElement.innerHTML = `
+                            <div class="chunk-header">数据块 ${chunk.index}/${task.totalChunks}</div>
+                            ${statusContent}
+                        `;
+                        chunkList.appendChild(chunkElement);
+                    });
+                }
+            },
+
+            // 新增：清空所有任务的方法
+            clearAllTasks() {
+                this.tasks.clear();
+                this.saveToLocalStorage();
+                
+                // 清空UI显示
+                const container = document.getElementById('chunksContainer');
+                const fileInfo = document.getElementById('currentFileInfo');
+                const chunkList = document.getElementById('chunkList');
+                
+                container.style.display = 'none';
+                fileInfo.textContent = '';
+                chunkList.innerHTML = '';
+            }
+        };
+
+        // 添加一个完整的重置函数
+        function resetAllState() {
+            // 重置上传区域
+            resetUploadArea();
+            
+            // 重置状态显示
+            statusDiv.style.display = 'none';
+            statusDiv.className = 'status';
+            statusDiv.textContent = '';
+            
+            // 重置数据块容器
+            const chunksContainer = document.getElementById('chunksContainer');
+            chunksContainer.style.display = 'none';
+            document.getElementById('currentFileInfo').textContent = '';
+            document.getElementById('chunkList').innerHTML = '';
+            
+            // 重置文件信息
+            fileInfo.textContent = '';
+            loading.style.display = 'none';
+            
+            // 启用上传区域
+            fileInput.disabled = false;
+            dropZone.style.pointerEvents = 'auto';
+            dropZone.style.opacity = '1';
+            
+            // 清除本地存储的任务数据
+            localStorage.removeItem('taskData');
+        }
+
+        // 添加切换响应显示的函数
+        function toggleResponse(index) {
+            const responseElement = document.getElementById(`response-${index}`);
+            if (responseElement) {
+                responseElement.style.display = 
+                    responseElement.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // 添加事件监听
+        document.querySelector('.update-cookies-btn').addEventListener('click', function() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-sync fa-spin"></i> 更新中...';
+                ws.send(JSON.stringify({ type: 'updateCookies' }));
+            } else {
+                console.error('WebSocket连接未建立');
+            }
+        });
+    </script>
+    <!-- 添加Font Awesome图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</body>
+</html> 

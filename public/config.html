@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token 更新管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+        <h2 class="text-xl font-bold mb-4 text-center">Token 更新管理</h2>
+        
+        <label class="block text-gray-700 text-sm font-semibold mb-2">新 Token:</label>
+        <input id="tokenInput" type="text" class="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-400" placeholder="输入新的 Token">
+        
+        <button onclick="updateToken()" class="w-full bg-blue-500 text-white p-2 rounded mt-4 hover:bg-blue-600 transition">更新 Token</button>
+        
+        <div id="responseMessage" class="mt-4 text-center text-sm text-gray-600"></div>
+    </div>
+
+    <script>
+        const SERVER_CONFIG = {
+            host: 'localhost',
+            port: 3000,
+            get baseUrl() {
+                return `http://${this.host}:${this.port}`;
+            },
+            get wsUrl() {
+                return `ws://${this.host}:${this.port}`;
+            }
+        };
+        async function updateToken() {
+            const token = document.getElementById("tokenInput").value;
+            const responseMessage = document.getElementById("responseMessage");
+
+            if (!token) {
+                responseMessage.innerHTML = '<span class="text-red-500">Token 不能为空！</span>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${SERVER_CONFIG.baseUrl}/update_token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ newToken: token })
+                });
+
+                const result = await response.text();
+                
+                if (response.ok) {
+                    responseMessage.innerHTML = '<span class="text-green-500">' + JSON.parse(result).message + '</span>';
+                } else {
+                    responseMessage.innerHTML = '<span class="text-red-500">更新失败: ' + JSON.parse(result).message + '</span>';
+                }
+            } catch (error) {
+                responseMessage.innerHTML = '<span class="text-red-500">请求错误: ' + error.message + '</span>';
+            }
+        }
+    </script>
+
+</body>
+</html>
