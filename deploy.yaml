@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xhs
+  namespace: linjia
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xhs
+  template:
+    metadata:
+      labels:
+        app: xhs
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - xhs
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+      containers:
+      - name: xhs
+        image: {{IMAGE_URL}}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        resources:
+          requests:
+            memory: 500Mi
+            cpu: 5m
+          limits:
+            memory: 2000Mi
+            cpu: 1000m
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: harbor
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: xhs
+  namespace: linjia
+  labels:
+    app: xhs
+spec:
+  ports:
+    - name: tcp-80
+      protocol: TCP
+      port: 80
+      targetPort: 3000
+  selector:
+    app: xhs
+  type: ClusterIP
+
