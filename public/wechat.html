@@ -255,7 +255,7 @@
             <div>
                 <label for="fromPageInput">起始页:</label>
                 <input type="number" id="fromPageInput" name="fromPage" required>
-            </div>
+        </div>
             <div>
                 <label for="linkInput">链接（选填）:</label>
                 <input type="url" id="linkInput" name="link">
@@ -268,8 +268,8 @@
     <script>
         // 添加后端服务器配置
         const SERVER_CONFIG = {
-            host: 'localhost',
-            port: 3000,
+            host: 'xhs.01lb.vip',
+            port: 80,
             get baseUrl() {
                 return `http://${this.host}:${this.port}`;
             },
@@ -298,8 +298,8 @@
 
             // 发送数据到后端
             fetch(`${SERVER_CONFIG.baseUrl}/wechat`, {
-                method: 'POST',
-                headers: {
+                    method: 'POST',
+                    headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ id, fromPage, link })
@@ -333,7 +333,7 @@
                 statusElement.style.display = 'block'; // 确保状态元素显示
                 statusElement.textContent = message;
                 statusElement.className = `status ${status}`;
-            } else {
+                        } else {
                 console.error('状态元素未找到');
             }
         }

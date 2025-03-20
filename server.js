@@ -644,7 +644,7 @@ async function fetchCookiesList() {
                 throw error;
             }
         });
-        
+
         if (response.data.msg === 'access token invalid'){
             return {
                 success: false,
@@ -1075,7 +1075,7 @@ async function processChunkNote(chunk, index, chunks, uploadId, connectionId, ad
         const cookieData = await CookieManager.getAvailableCookie();
         accountName = cookieData.name;
         // console.log(cookieData)
-        
+
         console.log(`使用账号 ${accountName} 处理第 ${index + 1} 块数据`);
         
         
@@ -1176,15 +1176,15 @@ async function processChunkNote(chunk, index, chunks, uploadId, connectionId, ad
 
             if (failureCount === 0) {
                 // 全部成功的情况
-                broadcastStatus({
-                    type: 'progress',
-                    message: `完成处理第 ${index + 1}/${chunks.length} 块数据 (${sheetName})`,
-                    current: index + 1,
-                    total: chunks.length,
-                    uploadId: uploadId,
-                    chunkIndex: index + 1,
-                    totalChunks: chunks.length,
-                    status: 'completed',
+            broadcastStatus({
+                type: 'progress',
+                message: `完成处理第 ${index + 1}/${chunks.length} 块数据 (${sheetName})`,
+                current: index + 1,
+                total: chunks.length,
+                uploadId: uploadId,
+                chunkIndex: index + 1,
+                totalChunks: chunks.length,
+                status: 'completed',
                     sheetName: sheetName,
                     processResult: {
                         success: true,
@@ -1192,12 +1192,12 @@ async function processChunkNote(chunk, index, chunks, uploadId, connectionId, ad
                         totalCount: data.length,
                         message: `成功处理 ${successCount} 条数据`
                     }
-                }, connectionId);
+            }, connectionId);
                 // console.log('该释放账号',accountName);
                 CookieManager.releaseCookie(accountName);
-                return { 
-                    success: true, 
-                    data: response.data.data,
+            return { 
+                success: true, 
+                data: response.data.data,
                     sheetName: sheetName,
                     processResult: {
                         success: true,
@@ -1290,7 +1290,7 @@ app.post('/upload_note', (req, res) => {
     if (!connectionId || !clients.has(connectionId)) {
         return res.status(400).json({ error: '无效的连接ID' });
     }
-    
+
     console.log('接收到合作笔记上传请求, 连接ID:', connectionId);
     
     // 使用单一的 multer 中间件处理文件上传

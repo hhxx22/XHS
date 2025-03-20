@@ -235,8 +235,8 @@
     <script>
         // 添加后端服务器配置
         const SERVER_CONFIG = {
-            host: 'localhost',
-            port: 3000,
+            host: 'xhs.01lb.vip',
+            port: 80,
             get baseUrl() {
                 return `http://${this.host}:${this.port}`;
             },
@@ -257,7 +257,7 @@
         // WebSocket连接
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.hostname}:3000/status_getnote`;
+            const wsUrl = `${protocol}//${SERVER_CONFIG.host}:${SERVER_CONFIG.port}/status_getnote`;
             
             ws = new WebSocket(wsUrl);
             
